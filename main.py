@@ -1,53 +1,39 @@
-import re
+import glob
+import streamlit
+import datetime
+import nltk
+import plotly.express as express
+import nltk.sentiment as sentiment
 
-def find_words():
-    with open("files/miracle_in_the_andes.txt", "r", encoding='utf-8') as file:
-        book = file.read()
-    book = book.replace(",", " ").replace(".", " ").replace("!", " ").replace("?", " ")
-    pattern = re.compile(" [A-Za-z]+[A-Za-z] ")
-    words = re.findall(pattern, book.lower())
+diary_entries = sorted(glob.glob("files/diary/*.txt"))
 
-    first = ""
-    first_count = 0
-    second = ""
-    second_count = 0
-    third = ""
-    third_count = 0
-    unique_words = []
+analyzed_dict = {}
+positive_dict = {}
+negative_dict = {}
+dates = []
+analyzer = sentiment.SentimentIntensityAnalyzer()
+for diary in diary_entries:
+    with open(diary, "r") as file:
+        date = datetime.datetime.strptime(diary.strip(".txt")[-8:], "%y-%m-%d").strftime("%B %d %Y")
+        analyzed_dict[date] = analyzer.polarity_scores(file.read())
+        positive_dict[date] = analyzed_dict[date]["pos"]
+        negative_dict[date] = analyzed_dict[date]["neg"]
 
-    for word in words:
-        if word not in unique_words:
-            unique_words.append(word)
-    print(unique_words)
+for key, value in analyzed_dict.items():
+    print(f"{key}: {value}")
+    print(positive_dict[key])
+    print(negative_dict[key])
+    print("\n")
 
-    for word in unique_words:
-        print(word)
-        count = book.lower().count(word)
-        if count > first_count:
-            print(f"Found first word: {word}")
-            first = word
-            print(first)
-            first_count = count
-        elif count > second_count:
-            print(f"Found second word: {word}")
-            second = word
-            print(second)
-            second_count = count
-        elif count > third_count:
-            print("Found third word.")
-            third = word
-            print(third)
-            third_count = count
+streamlit.title("Diary Tone Analyzer")
 
-    print(f"First: {first}")
-    print(f"Second: {second}")
-    print(f"Third: {third}")
+streamlit.subheader("Positivity")
 
+plotly_figure = express.line(x=positive_dict.keys(), y=positive_dict.values(), labels={"x": "Date", "y": "Positivity"})
+streamlit.plotly_chart(plotly_figure)
 
-def find_love_para():
-    with open("files/miracle_in_the_andes.txt", "r", encoding='utf-8') as file:
-        book = file.read()
-    print(book)
+streamlit.subheader("Negativity")
 
+plotly_figure = express.line(x=negative_dict.keys(), y=negative_dict.values(), labels={"x": "Date", "y": "Negativity"})
+streamlit.plotly_chart(plotly_figure)
 
-find_love_para()
